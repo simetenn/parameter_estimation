@@ -14,6 +14,8 @@ from ..utils.utility import contains_nan
 from ..utils.logger import get_logger
 
 
+
+
 class UncertaintyCalculations(ParameterBase):
     """
     Perform the calculations for the uncertainty quantification and
@@ -392,7 +394,54 @@ class UncertaintyCalculations(ParameterBase):
         return masked_evaluations, mask, masked_nodes, masked_weights
 
 
+    def get_UQ_samples(self, method, uncertain_parameters, polynomial_order, quadrature_order=None, seed=None):
+        if method not in ["spectral", "collocation", "MC"]:
+            raise ValueError("The UQ method needs to be provided (spectral, collocation or MC)")
+        uncertain_parameters = self.convert_uncertain_parameters(uncertain_parameters)
+        distribution = self.create_distribution(uncertain_parameters=uncertain_parameters)
+        if method == "spectral":
+            if quadrature_order is None:
+                raise ValueError("The quadrature_order must be an integer")
+            P = cp.orth_ttr(polynomial_order, distribution)
+            nodes, weights = cp.generate_quadrature(quadrature_order,
+                                                    distribution,
+                                                    rule="J",
+                                                    sparse=True)
+            return uncertain_parameters, distribution, P, nodes, weights
+        elif method == "collocation":
+            P = cp.orth_ttr(polynomial_order, distribution)
+            nr_collocation_nodes = quadrature_order
+            if nr_collocation_nodes is None:
+                nr_collocation_nodes = 2 * len(P) + 2
+            nodes = distribution.sample(nr_collocation_nodes, "M")
+            return uncertain_parameters, distribution, P, nodes, None
+        elif method == "MC":
+            nr_samples = polynomial_order
+            if nr_samples is None:
+                raise ValueError("The nr_samples must be an integer")
 
+            if seed is not None:
+                np.random.seed(seed)
+
+            problem = {
+                "num_vars": len(uncertain_parameters),
+                "names": uncertain_parameters,
+                "bounds": [[0,1]]*len(uncertain_parameters)
+            }
+
+            # Create the Multivariate normal distribution
+            dist_R = []
+            for parameter in uncertain_parameters:
+                dist_R.append(cp.Uniform())
+
+            dist_R = cp.J(*dist_R)
+
+            nr_sobol_samples = int(np.round(nr_samples/2.))
+
+            nodes_R = saltelli.sample(problem, nr_sobol_samples, calc_second_order=False)
+
+            nodes = distribution.inv(dist_R.fwd(nodes_R.transpose()))
+            return uncertain_parameters, distribution, None, nodes, nr_sobol_samples
 
 
     def create_PCE_spectral(self,
@@ -478,24 +527,14 @@ class UncertaintyCalculations(ParameterBase):
         uncertainpy.Data
         uncertainpy.Parameters
         """
-        uncertain_parameters = self.convert_uncertain_parameters(uncertain_parameters)
-
-        distribution = self.create_distribution(uncertain_parameters=uncertain_parameters)
-
-        P = cp.orth_ttr(polynomial_order, distribution)
-
         if quadrature_order is None:
             quadrature_order = polynomial_order + 2
-
-
-        nodes, weights = cp.generate_quadrature(quadrature_order,
-                                                distribution,
-                                                rule="J",
-                                                sparse=True)
+        uncertain_parameters, distribution, P, nodes, weights = self.get_UQ_samples("spectral", uncertain_parameters, polynomial_order, quadrature_order=quadrature_order) 
 
         # Running the model
         data = self.runmodel.run(nodes, uncertain_parameters)
 
+        # TODO: import data here instead of running
 
         data.method = "polynomial chaos expansion with the pseudo-spectral method. polynomial_order={}, quadrature_order={}".format(polynomial_order, quadrature_order)
 
@@ -614,19 +653,12 @@ class UncertaintyCalculations(ParameterBase):
         uncertainpy.Parameters
         """
 
-        uncertain_parameters = self.convert_uncertain_parameters(uncertain_parameters)
-
-        distribution = self.create_distribution(uncertain_parameters=uncertain_parameters)
-
-        P = cp.orth_ttr(polynomial_order, distribution)
-        if nr_collocation_nodes is None:
-            nr_collocation_nodes = 2*len(P) + 2
-
-        nodes = distribution.sample(nr_collocation_nodes, "M")
-
+        uncertain_parameters, distribution, P, nodes, _ = self.get_UQ_samples("collocation", uncertain_parameters, polynomial_order, quadrature_order=nr_collocation_nodes) 
 
         # Running the model
         data = self.runmodel.run(nodes, uncertain_parameters)
+
+        # TODO: import data here instead of running
 
         data.method = "polynomial chaos expansion with point collocation. polynomial_order={}, nr_collocation_nodes={}".format(polynomial_order, nr_collocation_nodes)
 
@@ -966,7 +998,7 @@ class UncertaintyCalculations(ParameterBase):
         return U_hat, dist_R, data
 
 
-    def analyse_PCE(self, U_hat, distribution, data, nr_samples=10**4):
+    def analyse_PCE(self, U_hat, distribution, data, nr_samples=10**4, save_samples=False):
         """
         Calculate the statistical metrics from the polynomial chaos
         approximation.
@@ -985,6 +1017,8 @@ class UncertaintyCalculations(ParameterBase):
             Number of samples for the Monte Carlo sampling of the polynomial
             chaos approximation.
             Default is 10**4.
+        save_samples: bool, optional
+            Save samples in feature data to, for example, plot PDFs later.
 
         Returns
         -------
@@ -1044,6 +1078,8 @@ class UncertaintyCalculations(ParameterBase):
                 else:
                     U_mc[feature] = U_hat[feature](samples)
 
+                if save_samples:
+                    data[feature].samples = U_mc[feature]
                 data[feature].percentile_5 = np.percentile(U_mc[feature], 5, -1)
                 data[feature].percentile_95 = np.percentile(U_mc[feature], 95, -1)
 
@@ -1194,6 +1230,7 @@ class UncertaintyCalculations(ParameterBase):
                          nr_pc_mc_samples=10**4,
                          allow_incomplete=True,
                          seed=None,
+                         save_samples=False,
                          **custom_kwargs):
         """
         Perform an uncertainty quantification and sensitivity analysis
@@ -1380,18 +1417,20 @@ class UncertaintyCalculations(ParameterBase):
         else:
             raise ValueError("No polynomial chaos method with name {}".format(method))
 
-        data = self.analyse_PCE(U_hat, distribution, data, nr_samples=nr_pc_mc_samples)
+        data = self.analyse_PCE(U_hat, distribution, data,
+                                nr_samples=nr_pc_mc_samples,
+                                save_samples=save_samples)
 
         data.seed = seed
 
         return data
 
-
     def monte_carlo(self,
                     uncertain_parameters=None,
                     nr_samples=10**4,
                     seed=None,
-                    allow_incomplete=True):
+                    allow_incomplete=True,
+                    save_samples=False):
         """
         Perform an uncertainty quantification using the quasi-Monte Carlo method.
 
@@ -1411,6 +1450,8 @@ class UncertaintyCalculations(ParameterBase):
             If the uncertainty quantification should be performed for features
             or models with incomplete evaluations.
             Default is True.
+        save_samples: bool, optional
+            Save samples in feature data to, for example, plot PDFs later.
 
         Returns
         -------
@@ -1471,34 +1512,7 @@ class UncertaintyCalculations(ParameterBase):
         uncertainpy.Parameters
         """
 
-        if seed is not None:
-            np.random.seed(seed)
-
-        uncertain_parameters = self.convert_uncertain_parameters(uncertain_parameters)
-
-        distribution = self.create_distribution(uncertain_parameters=uncertain_parameters)
-
-        # nodes = distribution.sample(nr_samples, "M")
-
-        problem = {
-            "num_vars": len(uncertain_parameters),
-            "names": uncertain_parameters,
-            "bounds": [[0,1]]*len(uncertain_parameters)
-        }
-
-        # Create the Multivariate normal distribution
-        dist_R = []
-        for parameter in uncertain_parameters:
-            dist_R.append(cp.Uniform())
-
-        dist_R = cp.J(*dist_R)
-
-        nr_sobol_samples = int(np.round(nr_samples/2.))
-
-        nodes_R = saltelli.sample(problem, nr_sobol_samples, calc_second_order=False)
-
-        nodes = distribution.inv(dist_R.fwd(nodes_R.transpose()))
-
+        uncertain_parameters, distribution, _, nodes, nr_sobol_samples = self.get_UQ_samples("MC", uncertain_parameters, nr_samples)
 
         data = self.runmodel.run(nodes, uncertain_parameters)
 
@@ -1522,6 +1536,8 @@ class UncertaintyCalculations(ParameterBase):
             logger = get_logger(self)
 
             if (np.all(mask) or allow_incomplete) and sum(mask) > 0:
+                if save_samples:
+                    data[feature].samples = masked_evaluations
                 data[feature].mean = np.mean(masked_evaluations, 0)
                 data[feature].variance = np.var(masked_evaluations, 0)
 

@@ -24,7 +24,6 @@ from .prettyplot import set_legend
 from .prettyplot import prettyPlot
 from .prettyplot import prettyBar
 
-from .prettyplot import axis_grey
 from .prettyplot import titlesize
 from .prettyplot import fontsize
 from .prettyplot import labelsize

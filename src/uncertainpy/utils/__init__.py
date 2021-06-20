@@ -14,3 +14,4 @@ from .logger import has_handlers, add_file_handler, add_screen_handler
 from .logger import MyFormatter, TqdmLoggingHandler, MultiprocessLoggingHandler
 from .utility import lengths, none_to_nan, contains_nan
 from .utility import is_regular, set_nan
+from .utility import create_model_parameters

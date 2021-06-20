@@ -291,3 +291,32 @@ def is_regular(values):
 
 #     return values
 
+
+def create_model_parameters(nodes, uncertain_parameters):
+        """
+        Combine nodes (values) with the uncertain parameter names to create a
+        list of dictionaries corresponding to the model values for each
+        model evaluation.
+        Parameters
+        ----------
+        nodes : array
+            A series of different set of parameters. The model and each feature is
+            evaluated for each set of parameters in the series.
+        uncertain_parameters : list
+            A list of names of the uncertain parameters.
+        Returns
+        -------
+        model_parameters : list
+             A list where each element is a dictionary with the model parameters
+             for a single evaluation.
+        """
+        model_parameters = []
+        for node in nodes.T:
+            if node.ndim == 0:
+                node = [node]
+            # New set parameters
+            parameters = {}
+            for j, parameter in enumerate(uncertain_parameters):
+                parameters[parameter] = node[j]
+            model_parameters.append(parameters)
+        return model_parameters

@@ -1,21 +1,23 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import matplotlib.pyplot as plt
+import matplotlib as mpl
 import numpy as np
 import seaborn as sns
 
 
-axis_grey = (0.6, 0.6, 0.6)
 ticksize = 5
-markersize = 8
-markeredgewidth = 1.4
+markersize = 6
+markeredgewidth = 1.
 figure_width = 7.08
 labelsize = 10
 titlesize = 12
-fontsize = 8
+fontsize = 10
 ticklabelsize = 8
-linewidth = 1.4
-figsize = (figure_width, figure_width*0.75)
+linewidth = 1.5
+# figsize = (figure_width, figure_width*0.75)
+figsize = [6.85039, 5.1375]
+
 
 def set_figuresize():
     """
@@ -33,9 +35,7 @@ def set_legendstyle():
 Set legend options.
     """
     params = {
-        "legend.frameon": True,
         "legend.numpoints": 1,
-        "legend.scatterpoints": 1,
         "legend.fontsize": fontsize,
         "legend.handlelength": 2.2,
         "legend.borderpad": 0.5,
@@ -45,11 +45,11 @@ Set legend options.
     plt.rcParams.update(params)
 
 
-
 def set_font():
     """Set font options."""
     params = {"text.antialiased": True,
-              "font.family": "serif",
+              "font.family": "sans-serif",
+              "font.sans-serif": "Arial",
               "font.weight": "normal",
               }
 
@@ -63,8 +63,8 @@ Set font options. Note, uses latex.
     params = {"text.usetex": True,
               "text.latex.preamble": "\\usepackage{amsmath}, \\usepackage{amssymb}",
               "text.antialiased": True,
-            #   "font.family": "lmodern",
-            #   "font.weight": "normal"
+              #   "font.family": "lmodern",
+              #   "font.weight": "normal"
               }
 
     plt.rcParams.update(params)
@@ -91,8 +91,8 @@ def set_tickstyle():
 Set tick style options
     """
 
-    params = {"xtick.color": axis_grey,
-              "ytick.color": axis_grey,
+    params = {'xtick.direction': 'out',
+              'ytick.direction': 'out',
               "xtick.major.size": ticksize,
               "ytick.major.size": ticksize,
               "xtick.labelsize": ticklabelsize,
@@ -109,7 +109,6 @@ Set tick style options
 
     params = {"axes.titlesize": titlesize,
               "axes.labelsize": labelsize,
-              "axes.edgecolor": axis_grey,
               "axes.labelcolor": "black",
               "axes.linewidth": 1,
               "axes.spines.right": False,
@@ -152,8 +151,8 @@ linewidth : float
             zorder=-10)
 
 
-def spines_color(ax, edges={"top": "None", "bottom": axis_grey,
-                            "right": "None", "left": axis_grey}):
+def spines_color(ax, edges={"top": "None", 
+                            "right": "None"}):
     """
 Set spines color
 
@@ -181,11 +180,11 @@ ax : matplotlib.axis
     axis object where the ticks are removed
     """
     ax.tick_params(axis="x", which="both", bottom=True, top=False,
-                   labelbottom=True, color=axis_grey, labelcolor="black",
+                   labelbottom=True, labelcolor="black",
                    labelsize=labelsize)
 
     ax.tick_params(axis="y", which="both", right=False, left=True,
-                   labelleft=True, color=axis_grey, labelcolor="black",
+                   labelleft=True, labelcolor="black",
                    labelsize=labelsize)
 
 
@@ -286,7 +285,7 @@ ax : matplotlib.axis object
         ax.set_title(title, fontsize=titlesize, **kwargs)
 
 
-def set_xlabel(xlabel, ax=None, color="black", **kwargs):
+def set_xlabel(xlabel, ax=None, color="black", lblsize=labelsize, **kwargs):
     """
 Set the x label
 
@@ -308,12 +307,12 @@ color : matplotlib accepted color
     Matplotlib xlabel() and set_xlabel() arguments
     """
     if ax is None:
-        plt.xlabel(xlabel, fontsize=labelsize, color=color, **kwargs)
+        plt.xlabel(xlabel, fontsize=lblsize, color=color, **kwargs)
     else:
-        ax.set_xlabel(xlabel, fontsize=labelsize, color=color, **kwargs)
+        ax.set_xlabel(xlabel, fontsize=lblsize, color=color, **kwargs)
 
 
-def set_ylabel(ylabel, ax=None, color="black", **kwargs):
+def set_ylabel(ylabel, ax=None, color="black", lblsize=labelsize, **kwargs):
     """
 Set the y label
 
@@ -335,9 +334,9 @@ color : matplotlib accepted color
     Matplotlib ylabel() and set_ylabel() arguments
     """
     if ax is None:
-        plt.ylabel(ylabel, fontsize=labelsize, color=color, **kwargs)
+        plt.ylabel(ylabel, fontsize=lblsize, color=color, **kwargs)
     else:
-        ax.set_ylabel(ylabel, fontsize=labelsize, color=color, **kwargs)
+        ax.set_ylabel(ylabel, fontsize=lblsize, color=color, **kwargs)
 
 
 def set_style(style="seaborn-darkgrid", nr_colors=6, palette="hls", custom=True):
@@ -445,8 +444,8 @@ def set_legend(labels, ax=None):
 
     legend = plt.legend(labels)
 
-    frame = legend.get_frame()
-    frame.set_facecolor(color)
+    #frame = legend.get_frame()
+    #frame.set_facecolor(color)
 
 
 def prettyPlot(x=[], y=None,
@@ -454,7 +453,7 @@ def prettyPlot(x=[], y=None,
                xlabel="",
                ylabel="",
                color=None,
-               style="seaborn-darkgrid",
+               style="classic",
                custom_style=True,
                palette="hls",
                nr_colors=6,
@@ -464,6 +463,8 @@ def prettyPlot(x=[], y=None,
                yerr=None,
                xerr=None,
                ecolor=None,
+               labelfontsize=labelsize,
+               ffontsize=fontsize,
                capsize=5,
                capthick=2,
                **kwargs):
@@ -563,6 +564,13 @@ Returns
 ----------
 ax : matplotlib.axis object
     """
+    global labelsize
+    global fontsize
+    if labelfontsize != labelsize:
+        labelsize = labelfontsize
+    if ffontsize != fontsize:
+        fontsize = ffontsize
+
     set_style(style, nr_colors=nr_colors, palette=palette, custom=custom_style)
 
     if ax is None:
@@ -583,8 +591,8 @@ ax : matplotlib.axis object
         remove_ticks(ax)
 
     set_title(title, ax)
-    set_xlabel(xlabel, ax)
-    set_ylabel(ylabel, ax)
+    set_xlabel(xlabel, ax, lblsize=labelfontsize)
+    set_ylabel(ylabel, ax, lblsize=labelfontsize)
 
     if y is None:
         y = x
@@ -606,6 +614,7 @@ ax : matplotlib.axis object
             ecolor = ecolors[ecolor]
         else:
             ecolor = color
+        print("E-Color {} with type {}".format(ecolor, type(ecolor)))
 
         ax.errorbar(x, y,
                     color=color,
@@ -620,7 +629,7 @@ ax : matplotlib.axis object
 
 
     if custom_style:
-        ax.yaxis.offsetText.set_fontsize(labelsize)
+        ax.yaxis.offsetText.set_fontsize(labelfontsize)
         ax.yaxis.offsetText.set_color("black")
         # ax.ticklabel_format(useOffset=False)
 
@@ -650,8 +659,9 @@ def prettyBar(x, error=None,
               palette="hls",
               nr_colors=6,
               align="center",
-              error_kw={"ecolor": axis_grey,
-                        "lw": 2,
+              labelfontsize=labelsize,
+              ffontsize=fontsize,
+              error_kw={"lw": 2,
                         "capsize": 10,
                         "capthick": 2},
               **kwargs):
@@ -736,6 +746,12 @@ Returns
 ax : matplotlib ax Object
     """
 
+    global labelsize
+    if labelfontsize != labelsize: 
+        labelsize = labelfontsize
+    global fontsize
+    if ffontsize != fontsize:
+        fontsize = ffontsize
     set_style(style, nr_colors=nr_colors, palette=palette, custom=custom_style)
 
     if ax is None:
@@ -760,7 +776,7 @@ ax : matplotlib ax Object
 
 
     if error_kw is None:
-        error_kw = dict(ecolor=axis_grey, lw=2, capsize=10, capthick=2)
+        error_kw = dict(lw=2, capsize=10, capthick=2)
 
     if color is None:
         colors = sns.color_palette()
@@ -769,7 +785,7 @@ ax : matplotlib ax Object
 
     ax.bar(index, x, yerr=error, color=colors, width=width,
            align=align, linewidth=linewidth, error_kw=error_kw,
-           edgecolor=axis_grey, **kwargs)
+           **kwargs)
 
     ax.set_xticks(xticks)
     ax.set_xticklabels(xlabels, fontsize=labelsize, rotation=0)
@@ -778,7 +794,7 @@ ax : matplotlib ax Object
     # ax.set_ylim([min(y), max(y)])
 
     set_title(title, ax)
-    set_ylabel(ylabel, ax)
+    set_ylabel(ylabel, ax, lblsize=labelsize)
 
 
     return ax

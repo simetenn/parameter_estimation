@@ -226,6 +226,7 @@ class UncertaintyQuantification(ParameterBase):
                  figure_folder="figures",
                  figureformat=".png",
                  save=True,
+                 save_samples=False,
                  data_folder="data",
                  filename=None,
                  **custom_kwargs):
@@ -407,6 +408,7 @@ class UncertaintyQuantification(ParameterBase):
                                                     figure_folder=figure_folder,
                                                     figureformat=figureformat,
                                                     save=save,
+                                                    save_samples=save_samples,
                                                     data_folder=data_folder,
                                                     filename=filename,
                                                     **custom_kwargs)
@@ -425,6 +427,7 @@ class UncertaintyQuantification(ParameterBase):
                                              figure_folder=figure_folder,
                                              figureformat=figureformat,
                                              save=save,
+                                             save_samples=save_samples,
                                              data_folder=data_folder,
                                              filename=filename,
                                              **custom_kwargs)
@@ -438,6 +441,7 @@ class UncertaintyQuantification(ParameterBase):
                                                figureformat=figureformat,
                                                save=save,
                                                data_folder=data_folder,
+                                               save_samples=save_samples,
                                                filename=filename,
                                                seed=seed)
 
@@ -451,6 +455,7 @@ class UncertaintyQuantification(ParameterBase):
                                         save=save,
                                         data_folder=data_folder,
                                         filename=filename,
+                                        save_samples=save_samples,
                                         seed=seed)
 
 
@@ -565,6 +570,7 @@ class UncertaintyQuantification(ParameterBase):
                          figure_folder="figures",
                          figureformat=".png",
                          save=True,
+                         save_samples=False,
                          data_folder="data",
                          filename=None,
                          **custom_kwargs):
@@ -708,6 +714,7 @@ class UncertaintyQuantification(ParameterBase):
             quadrature_order=quadrature_order,
             nr_pc_mc_samples=nr_pc_mc_samples,
             allow_incomplete=allow_incomplete,
+            save_samples=save_samples,
             seed=seed,
             **custom_kwargs
             )
@@ -736,6 +743,7 @@ class UncertaintyQuantification(ParameterBase):
                     figureformat=".png",
                     save=True,
                     data_folder="data",
+                    save_samples=False,
                     filename=None):
         """
         Perform an uncertainty quantification using the quasi-Monte Carlo method.
@@ -832,6 +840,7 @@ class UncertaintyQuantification(ParameterBase):
 
         self.data = self.uncertainty_calculations.monte_carlo(uncertain_parameters=uncertain_parameters,
                                                               nr_samples=nr_samples,
+                                                              save_samples=save_samples,
                                                               seed=seed)
 
         self.data.backend = self.backend
@@ -863,6 +872,7 @@ class UncertaintyQuantification(ParameterBase):
                                 figure_folder="figures",
                                 figureformat=".png",
                                 save=True,
+                                save_samples=False,
                                 data_folder="data",
                                 filename=None):
         """
@@ -1016,8 +1026,8 @@ class UncertaintyQuantification(ParameterBase):
                 nr_collocation_nodes=nr_collocation_nodes,
                 quadrature_order=quadrature_order,
                 nr_pc_mc_samples=nr_pc_mc_samples,
-                allow_incomplete=allow_incomplete,
-            )
+                save_samples=save_samples,
+                allow_incomplete=allow_incomplete)
 
             data.backend = self.backend
             data.seed = seed
@@ -1046,6 +1056,7 @@ class UncertaintyQuantification(ParameterBase):
                            data_folder="data",
                            figure_folder="figures",
                            figureformat=".png",
+                           save_samples=False,
                            filename=None):
         """
         Perform an uncertainty quantification for a single parameter at the time
@@ -1152,7 +1163,7 @@ class UncertaintyQuantification(ParameterBase):
             logger.info("Running MC for " + uncertain_parameter)
 
             data = self.uncertainty_calculations.monte_carlo(uncertain_parameters=uncertain_parameter,
-                                                                  nr_samples=nr_samples)
+                                                             nr_samples=nr_samples, save_samples=save_samples)
 
             data.backend = self.backend
             data.seed = seed
@@ -1323,13 +1334,13 @@ class UncertaintyQuantification(ParameterBase):
                     tmp_folder = os.path.join(folder, uncertain_parameter)
 
                     self.plotting.folder = tmp_folder
-                    self.plotting.data = self.data[uncertain_parameter]
+                    self.plotting.set_data(self.data[uncertain_parameter])
 
                     plot(type)
 
             else:
                 self.plotting.folder = folder
-                self.plotting.data = self.data
+                self.plotting.set_data(self.data)
 
                 plot(type)
 

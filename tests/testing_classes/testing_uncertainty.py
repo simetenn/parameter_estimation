@@ -12,6 +12,7 @@ class TestingUncertaintyCalculations(UncertaintyCalculations):
                          quadrature_order=4,
                          nr_pc_mc_samples=10**4,
                          allow_incomplete=False,
+                         save_samples=False,
                          seed=None):
 
         arguments = {}
@@ -25,6 +26,7 @@ class TestingUncertaintyCalculations(UncertaintyCalculations):
         arguments["quadrature_order"] = quadrature_order
         arguments["nr_pc_mc_samples"] = nr_pc_mc_samples
         arguments["seed"] = seed
+        arguments["save_samples"] = save_samples
         arguments["allow_incomplete"] = allow_incomplete
 
 
@@ -37,6 +39,7 @@ class TestingUncertaintyCalculations(UncertaintyCalculations):
     def monte_carlo(self,
                     uncertain_parameters=None,
                     nr_samples=10**3,
+                    save_samples=False,
                     seed=None):
         arguments = {}
 
@@ -44,6 +47,7 @@ class TestingUncertaintyCalculations(UncertaintyCalculations):
         arguments["uncertain_parameters"] = uncertain_parameters
         arguments["seed"] = seed
         arguments["nr_samples"] = nr_samples
+        arguments["save_samples"] = save_samples
 
         data = Data(logger_level=None)
         data.arguments = arguments
